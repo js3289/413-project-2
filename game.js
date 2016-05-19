@@ -44,8 +44,6 @@ class EnhSprite extends PIXI.Sprite {
 
 function animate() { 
 	requestAnimationFrame(animate);
-	handleKeys();
-	keepInBounds();
 	renderer.render(stage);
 }
 
@@ -86,6 +84,9 @@ function setup() {
 // Add background to stage
 	gameplayC.addChild(background);
 	stage.addChild(gameplayC);
+	
+// Pass control to animate
+	animate();
 }
 
 setup();
