@@ -73,6 +73,7 @@ class Tile extends EnhSprite {
 	}
 	
 	switchLocation() {
+		console.log(this.x + " --- " + this.y);
 		if(!isAnimating && this.name != "emptyTile") {
 				if(tiles.isAdjacent(this)) {
 				isAnimating = !isAnimating;
@@ -212,6 +213,7 @@ function setup() {
 	puzzleC 		= new Container();
 	menuC 			= new Container();
 	creditsC 		= new Container();
+	winC			= new Container();
 	
 	LEFT = 0;
 	TOP = 0;
@@ -238,11 +240,19 @@ function setup() {
 // Take image and generate + place tiles.
 	generateTiles();
 	stage.addChild(puzzleC);
+	titleC.addChild(new Sprite(TextureFrame("title.png")));
+	instructionsC.addChild(new Sprite(TextureFrame("Instructions.png")));
+	menuC.addChild(new Sprite(TextureFrame("Easy-mode.png")));
+	creditsC.addChild(new Sprite(TextureFrame("credits.png")));
+	winC.addChild(new Sprite(TextureFrame("you-win.png")));
+	
 	
 // Pass control to animate
 	animate();
 }
-
+function controlState() {
+	
+}
 function generateTiles() { 
 	var posArr = [];
 	var tilArr = [];
@@ -261,7 +271,7 @@ function generateTiles() {
 		puzzleC.addChild(tilArr[i]);
 	}
 	
-	emptyTile = new Tile("emptyTile", TextureFrame("empty-tile.png"), 24);
+	emptyTile = new Tile("emptyTile", TextureFrame("24.png"), 24);
 	emptyTile.visible = false;
 	tiles.set(24, emptyTile);
 	puzzleC.addChild(emptyTile);
