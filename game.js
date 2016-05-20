@@ -5,6 +5,7 @@
 
 // Aliases
 	TextureImage = PIXI.Texture.fromImage;
+	TextureFrame = PIXI.Texture.fromFrame;
 	Sprite = PIXI.Sprite;
 	Container = PIXI.Container;
 	Renderer = PIXI.autoDetectRenderer;
@@ -30,6 +31,14 @@
 	var player;
 	var emptyTile;
 	var tiles;
+	
+	var isAnimating;
+	
+	PIXI.SCALE_MODES.DEFAULT = PIXI.SCALE_MODES.NEAREST;
+	
+	PIXI.loader
+		.add("Assets/assets.json")
+		.load(setup);
 
 /**
  *	EnhSprite is just an extension of PIXI.Sprite, keeps track of the name of the sprite as well as collision boolean
@@ -51,24 +60,32 @@ class Tile extends EnhSprite {
 		this.anchor.y = LEFT;
 		this.position.x = tiles.getNextOpenX();
 		this.position.y = tiles.getNextOpenY();
+		this.interactive = true;
 		
 		this
-			.on('mousedown', this.switchLocation)
-			.on('mouseup', this.switchLocation)
-			.on('mouseupoutside', this.switchLocation)
-			.on('touchstart', this.switchLocation)
-			.on('touchend', this.switchLocation)
-			.on('touchendoutside', this.switchLocation);
+			.on('mousedown', this.switchLocation);
+			//.on('mouseup', this.switchLocation)
+			//.on('mouseupoutside', this.switchLocation)
+			//.on('touchstart', this.switchLocation)
+			//.on('touchend', this.switchLocation)
+			//.on('touchendoutside', this.switchLocation);
 			
 	}
 	
 	switchLocation() {
-		alert("alert");
-		var tempX = this.position.x;
-		var tempY = this.position.y;
-		createjs.Tween.get(this.position).to({x: emptyTile.position.x, y: emptyTile.position.y}, 1000);
-		createjs.Tween.get(emptyTile.position).to({x: tempX, y: tempY}, 1000);
-		
+		if(!isAnimating && this.name != "emptyTile") {
+				if(tiles.isAdjacent(this)) {
+				isAnimating = !isAnimating;
+				var tempX = this.position.x;
+				var tempY = this.position.y;
+				var tempPos = this.pos;
+				createjs.Tween.get(this.position).to({x: emptyTile.position.x, y: emptyTile.position.y}, 425);
+				createjs.Tween.get(emptyTile.position).to({x: tempX, y: tempY}, 425);
+				this.pos = emptyTile.pos;
+				emptyTile.pos = tempPos;
+				setTimeout(function(){ isAnimating = false}, 425);
+			}
+		}
 	}
 }
 
@@ -158,6 +175,19 @@ class TileMatrix extends Matrix {
 	getNextOpenY() {
 		return this.nextY;
 	}
+	
+	isAdjacent(tile){
+		if(Math.abs(tile.pos - emptyTile.pos) === 1 || Math.abs(tile.pos - emptyTile.pos) === this.cols) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+}
+
+function randInt(min, max) {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function animate() { 
@@ -189,11 +219,13 @@ function setup() {
 	BOTTOM = 1;
 	RIGHT = 1;
 	
+	isAnimating = false;
+	
 // Add renderer to gameport
 	gameport.appendChild(renderer.view);
 	
 // Create background. Center background + add it to stage.
-	var background = new Sprite(TextureImage("Assets/png/background.png"));
+	var background = new Sprite(TextureFrame("background-final.png"));
 	background.anchor.x = MIDDLE;
 	background.anchor.y = MIDDLE;
 	background.position.x = WIDTH / 2;
@@ -212,14 +244,25 @@ function setup() {
 }
 
 function generateTiles() { 
-	for(var i = 0; i < 24; i++) {
-		var temp = new Tile("tile", TextureImage("Assets/png/test-tile.png"), i);
-		tiles.set(i, temp);
-		puzzleC.addChild(temp);
+	var posArr = [];
+	var tilArr = [];
+	var finArr = [];
+	for(var i = 0; i < 24; i++){
+		var temp = randInt(0, 23);
+		while(posArr.indexOf(temp) >= 0){
+			temp = randInt(0, 23);
+		}
+		posArr[i] = temp;
 	}
-	emptyTile = new Tile("emptyTile", TextureImage("Assets/png/empty-tile.png"), 24);
+	for(var i = 0; i < 24; i++) {
+		var temp = new Tile("tile", TextureFrame(posArr[i] + ".png"), i);
+		tilArr.push(temp);
+		tiles.set(i, tilArr[i]);
+		puzzleC.addChild(tilArr[i]);
+	}
+	
+	emptyTile = new Tile("emptyTile", TextureFrame("empty-tile.png"), 24);
+	emptyTile.visible = false;
 	tiles.set(24, emptyTile);
 	puzzleC.addChild(emptyTile);
 }
-
-setup();
