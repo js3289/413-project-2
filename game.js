@@ -12,7 +12,7 @@
 // Gameport, renderer, All containers + stage
 	var gameport;
 	var renderer;
-	
+
 	var stage;
 	var titleC;
 	var instructionsC;
@@ -28,6 +28,7 @@
 	var RIGHT;
 
 	var player;
+	var emptyTile;
 	var tiles;
 
 /**
@@ -43,13 +44,31 @@ class EnhSprite extends PIXI.Sprite {
 }
 
 class Tile extends EnhSprite {
-	constructor(name, texture, position) {
+	constructor(name, texture, pos) {
 		super(name, false, texture);
-		this.pos;
+		this.pos = pos;
 		this.anchor.x = TOP;
 		this.anchor.y = LEFT;
 		this.position.x = tiles.getNextOpenX();
 		this.position.y = tiles.getNextOpenY();
+		
+		this
+			.on('mousedown', this.switchLocation)
+			.on('mouseup', this.switchLocation)
+			.on('mouseupoutside', this.switchLocation)
+			.on('touchstart', this.switchLocation)
+			.on('touchend', this.switchLocation)
+			.on('touchendoutside', this.switchLocation);
+			
+	}
+	
+	switchLocation() {
+		alert("alert");
+		var tempX = this.position.x;
+		var tempY = this.position.y;
+		createjs.Tween.get(this.position).to({x: emptyTile.position.x, y: emptyTile.position.y}, 1000);
+		createjs.Tween.get(emptyTile.position).to({x: tempX, y: tempY}, 1000);
+		
 	}
 }
 
@@ -192,11 +211,15 @@ function setup() {
 	animate();
 }
 
-function generateTiles() {
+function generateTiles() { 
 	for(var i = 0; i < 24; i++) {
-		var temp = new Tile("tile", TextureImage("Assets/png/test-tile.png", i) );
+		var temp = new Tile("tile", TextureImage("Assets/png/test-tile.png"), i);
 		tiles.set(i, temp);
 		puzzleC.addChild(temp);
 	}
+	emptyTile = new Tile("emptyTile", TextureImage("Assets/png/empty-tile.png"), 24);
+	tiles.set(24, emptyTile);
+	puzzleC.addChild(emptyTile);
 }
+
 setup();
