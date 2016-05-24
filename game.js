@@ -28,16 +28,22 @@
 	var BOTTOM;
 	var RIGHT;
 
+// Misc globals used in game
 	var player;
 	var emptyTile;
+	var keysActive;
 	var tiles;
-	
+	var menu;
+	var hasWon;
+	var posArr;
+	var slide;
 	var isAnimating;
 	
 	PIXI.SCALE_MODES.DEFAULT = PIXI.SCALE_MODES.NEAREST;
 	
 	PIXI.loader
 		.add("Assets/assets.json")
+		.add("TileSlide.mp3")
 		.load(setup);
 
 /**
@@ -52,6 +58,13 @@ class EnhSprite extends PIXI.Sprite {
 	}
 }
 
+/**
+ *	Tile class
+ *	Extends from our enhanced sprite, used to populate our game board
+ *  @param {name} - Name of sprite, used for reference
+ *	@param {texture} - Texture to create sprite out of
+ *	@param {pos} - Position in our Tile Matrix
+ */
 class Tile extends EnhSprite {
 	constructor(name, texture, pos) {
 		super(name, false, texture);
@@ -64,35 +77,57 @@ class Tile extends EnhSprite {
 		
 		this
 			.on('mousedown', this.switchLocation);
-			//.on('mouseup', this.switchLocation)
-			//.on('mouseupoutside', this.switchLocation)
-			//.on('touchstart', this.switchLocation)
-			//.on('touchend', this.switchLocation)
-			//.on('touchendoutside', this.switchLocation);
 			
 	}
 	
 	switchLocation() {
+	
 		console.log(this.x + " --- " + this.y);
-		if(!isAnimating && this.name != "emptyTile") {
-				if(tiles.isAdjacent(this)) {
+		
+		if(!isAnimating && this.name != "emptyTile" && !hasWon) {
+			if(tiles.isAdjacent(this)) {
 				isAnimating = !isAnimating;
+				
 				var tempX = this.position.x;
 				var tempY = this.position.y;
 				var tempPos = this.pos;
-				createjs.Tween.get(this.position).to({x: emptyTile.position.x, y: emptyTile.position.y}, 425);
-				createjs.Tween.get(emptyTile.position).to({x: tempX, y: tempY}, 425);
+				
+				createjs.Tween.get(this.position).to({x: emptyTile.position.x, y: emptyTile.position.y}, 450);
+				createjs.Tween.get(emptyTile.position).to({x: tempX, y: tempY}, 450);
+				slide.play();
+				
+				
 				this.pos = emptyTile.pos;
 				emptyTile.pos = tempPos;
-				setTimeout(function(){ isAnimating = false}, 425);
+				
+				console.log("This: " + this.pos + " Empty: " + emptyTile.pos);
+				
+				var temp = posArr[this.pos];
+				posArr[this.pos] = posArr[emptyTile.pos];
+				posArr[emptyTile.pos] = temp;
+				
+				console.log(posArr);
+				
+				var wonCheck = true;
+				for(var i = 0; i < posArr.length; i++) {
+					if(posArr[i] != i) {
+						wonCheck = false;
+					}
+				}
+				if(wonCheck) {
+						hasWon = true;
+						setTimeout(function() { controlState("win") }, 3000 );
+					}
+				setTimeout(function(){ isAnimating = false}, 475);
 			}
 		}
 	}
 }
 
 /**
- * Simple Matrix class used for storing and interacting with tiles in an easier way.
- * Will be used to store tiles for our puzzle
+ * 	Simple Matrix class.
+ *	@param {rows} - Rows of matrix
+ *	@param {cols} - Columns of matrix
  */
 class Matrix {
 
@@ -140,6 +175,12 @@ class Matrix {
 	
 }
 
+/**
+ * 	Simple Matrix class used for storing and interacting with tiles in an easier way.
+ * 	Will be used to store tiles for our puzzle.
+ *	@param {rows} - Rows of matrix
+ *	@param {cols} - Columns of matrix
+ */
 class TileMatrix extends Matrix {
 	constructor(rows, cols) {
 		super(rows, cols);
@@ -147,6 +188,7 @@ class TileMatrix extends Matrix {
 		this.nextY = 0;
 	}
 	
+	// 3 functions to fill our background correctly, positions tiles in appropriate X/Y
 	getNextPos() {
 		if(this.nextX === 0) {
 			this.nextX = 20;
@@ -177,6 +219,7 @@ class TileMatrix extends Matrix {
 		return this.nextY;
 	}
 	
+	// Checks if our tile is adjacent to the "empty" tile - used to validate sliding of tiles in our game board
 	isAdjacent(tile){
 		if(Math.abs(tile.pos - emptyTile.pos) === 1 || Math.abs(tile.pos - emptyTile.pos) === this.cols) {
 			return true;
@@ -193,19 +236,21 @@ function randInt(min, max) {
 
 function animate() { 
 	requestAnimationFrame(animate);
+	handleKeys();
 	renderer.render(stage);
 }
 
+// Setup does all of the setup for our game, from defining variables to starting the game.
 function setup() {
 	HEIGHT = 500;
 	WIDTH = 500;
 	gameState = "title";
-	
+
 	tiles = new TileMatrix(5, 5);
-	
+
 	gameport = document.getElementById("gameport");
 	renderer = PIXI.autoDetectRenderer(WIDTH, HEIGHT);
-	
+
 	stage 			= new Container();
 	gameplayC		= new Container();
 	titleC 			= new Container();
@@ -214,18 +259,24 @@ function setup() {
 	menuC 			= new Container();
 	creditsC 		= new Container();
 	winC			= new Container();
-	
+	mainMenuC		= new Container();
+
 	LEFT = 0;
 	TOP = 0;
 	MIDDLE = .5;
 	BOTTOM = 1;
 	RIGHT = 1;
 	
+	keysActive = [];
+
 	isAnimating = false;
-	
+	menu = false;
+	hasWon = false;
+	slide = PIXI.audioManager.getAudio("TileSlide.mp3");
+
 // Add renderer to gameport
-	gameport.appendChild(renderer.view);
-	
+	gameport.appendChild(renderer.view); 
+
 // Create background. Center background + add it to stage.
 	var background = new Sprite(TextureFrame("background-final.png"));
 	background.anchor.x = MIDDLE;
@@ -235,26 +286,160 @@ function setup() {
 
 // Add background to stage
 	gameplayC.addChild(background);
-	stage.addChild(gameplayC);
+
 	
+// Main menu
+	mainMenuC.addChild(new Sprite(TextureFrame("menu.png")));
+	
+	// play button
+	playButton = new Sprite(TextureFrame("Play-button.png"));
+	playButton.anchor.x = LEFT;
+	playButton.anchor.y = TOP;
+	playButton.x = 154;
+	playButton.y = 150;
+	
+	playButton.interactive = true;
+	playButton.on('mousedown', function() { controlState("play") } );
+	
+	mainMenuC.addChild(playButton);
+	
+	// instructions button
+	instructionsButton = new Sprite(TextureFrame("Instructions-button.png"));
+	instructionsButton.anchor.x = LEFT;
+	instructionsButton.anchor.y = TOP;
+	instructionsButton.x = 154;
+	instructionsButton.y = 260;
+	
+	instructionsButton.interactive = true;
+	instructionsButton.on('mousedown', function() { controlState("instructions") } );
+	
+	mainMenuC.addChild(instructionsButton);
+	
+	// credits button
+	creditsButton = new Sprite(TextureFrame("Credits-button.png"));
+	creditsButton.anchor.x = LEFT;
+	creditsButton.anchor.y = TOP;
+	creditsButton.x = 154;
+	creditsButton.y = 370;
+	
+	
+	creditsButton.interactive = true;
+	creditsButton.on('mousedown', function() { controlState("credits") } );
+	
+	mainMenuC.addChild(creditsButton);
+	
+// Instructions
+	instructionsC.addChild(new Sprite(TextureFrame("Instructions.png")));
+
+	// back button
+	backButton = new Sprite(TextureFrame("Back-button.png"));
+	backButton.anchor.x = LEFT;
+	backButton.anchor.y = TOP;
+	backButton.x = 154;
+	backButton.y = 370;
+	
+	
+	backButton.interactive = true;
+	backButton.on('mousedown', function() { controlState("main") } );
+	
+	instructionsC.addChild(backButton);
+	
+// Credits
+	creditsC.addChild(new Sprite(TextureFrame("Credits.png")));
+
+	// back button
+	backButton = new Sprite(TextureFrame("Back-button.png"));
+	backButton.anchor.x = LEFT;
+	backButton.anchor.y = TOP;
+	backButton.x = 154;
+	backButton.y = 370;
+	
+	
+	backButton.interactive = true;
+	backButton.on('mousedown', function() { controlState("main") } );
+	
+	creditsC.addChild(backButton);
+	
+	
+
 // Take image and generate + place tiles.
 	generateTiles();
-	stage.addChild(puzzleC);
 	titleC.addChild(new Sprite(TextureFrame("title.png")));
-	instructionsC.addChild(new Sprite(TextureFrame("Instructions.png")));
-	menuC.addChild(new Sprite(TextureFrame("Easy-mode.png")));
-	creditsC.addChild(new Sprite(TextureFrame("credits.png")));
+	var menuComplete = new Sprite(TextureFrame("Easy-mode.png"));
+	menuComplete.scale.x = 1.25;
+	menuComplete.scale.y = 1.25;
+	menuC.addChild(menuComplete);
 	winC.addChild(new Sprite(TextureFrame("you-win.png")));
 	
-	
+	controlState("title");
+	setTimeout(function() { controlState("main") }, 3000 );
+	setTimeout(function() { 
+							document.addEventListener('keydown', function(e) { 
+											keysActive[e.keyCode] = true; e.preventDefault(); } ) 
+						  }, 8000 );
+	setTimeout(function() { 
+							document.addEventListener('keyup', function(e) { 
+											keysActive[e.keyCode] = false; e.preventDefault(); } ) 
+						  }, 8000 );
+
 // Pass control to animate
 	animate();
 }
-function controlState() {
+
+function handleKeys(e) {
+	if(keysActive[9] && gameState === "play") {
+		if(menu === false) {
+			menu = true;
+			controlState("menu");
+		}
+	}
+	if(!keysActive[9] && gameState === "menu") {
+		if(menu) {
+			menu = false;
+			controlState("play");
+		}
+	}
+		
+}
+
+//controlState function makes it easy to handle changing containers and dealing with the stage
+function controlState(state) {
+	for(var i = stage.children.length - 1; i >= 0; i--){
+		stage.removeChild(stage.children[i]);
+	}
+	
+	gameState = state;
+	
+	if(gameState === "play") {
+		stage.addChild(gameplayC);
+		stage.addChild(puzzleC);
+	}
+	else if(gameState === "main") {
+		stage.addChild(mainMenuC);
+	}
+	else if (gameState === "title"){
+		stage.addChild(titleC);
+	}
+	else if (gameState === "instructions"){
+		stage.addChild(instructionsC);
+	}
+	else if(gameState === "win") {
+		stage.addChild(winC);
+	}
+	
+	else if(gameState === "menu") {
+		stage.addChild(menuC);
+	}
+	
+	else if(gameState === "credits") {
+		stage.addChild(creditsC);
+	}
 	
 }
+
+// generateTiles creates all of the tile objects from our sprites and shuffles them.
 function generateTiles() { 
-	var posArr = [];
+	posArr = [];
 	var tilArr = [];
 	var finArr = [];
 	for(var i = 0; i < 24; i++){
@@ -272,7 +457,11 @@ function generateTiles() {
 	}
 	
 	emptyTile = new Tile("emptyTile", TextureFrame("24.png"), 24);
+	posArr.push(24)
 	emptyTile.visible = false;
 	tiles.set(24, emptyTile);
 	puzzleC.addChild(emptyTile);
+	
+	console.log(posArr);
+	console.log(tilArr);
 }
