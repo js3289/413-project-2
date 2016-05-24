@@ -28,7 +28,7 @@
             </struct>
         </array>
         <key>allowRotation</key>
-        <true/>
+        <false/>
         <key>shapeDebug</key>
         <false/>
         <key>dpi</key>
@@ -141,7 +141,7 @@
             <key>data</key>
             <struct type="DataFile">
                 <key>name</key>
-                <filename></filename>
+                <filename>assets.json</filename>
             </struct>
         </map>
         <key>multiPack</key>
@@ -188,10 +188,15 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
+            <key type="filename">png/Back-button.png</key>
+            <key type="filename">png/Credits-button.png</key>
             <key type="filename">png/Credits.png</key>
             <key type="filename">png/Easy-mode.png</key>
+            <key type="filename">png/Instructions-button.png</key>
             <key type="filename">png/Instructions.png</key>
+            <key type="filename">png/Play-button.png</key>
             <key type="filename">png/background-final.png</key>
+            <key type="filename">png/menu.png</key>
             <key type="filename">png/title.png</key>
             <key type="filename">png/you-win.png</key>
             <struct type="IndividualSpriteSettings">
@@ -207,6 +212,11 @@
             <filename>png/title.png</filename>
             <filename>png/background-final.png</filename>
             <filename>png/you-win.png</filename>
+            <filename>png/menu.png</filename>
+            <filename>png/Play-button.png</filename>
+            <filename>png/Back-button.png</filename>
+            <filename>png/Credits-button.png</filename>
+            <filename>png/Instructions-button.png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>
